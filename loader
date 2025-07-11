@@ -1,0 +1,407 @@
+local Players = game:GetService("Players");
+local LocalPlayer = Players.LocalPlayer;
+local LocalizationService = game:GetService("LocalizationService");
+local UserInputService = game:GetService("UserInputService");
+local RunService = game:GetService("RunService");
+local Lighting = game:GetService("Lighting");
+local Workspace = game:GetService("Workspace");
+local VirtualUser = game:GetService("VirtualUser");
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shel1a/Orion/main/source"))();
+local country = "Unknown";
+pcall(function()
+	country = LocalizationService:GetCountryRegionForPlayerAsync(LocalPlayer);
+end);
+local device;
+if (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) then
+	device = "Mobile";
+elseif (UserInputService.GamepadEnabled and not UserInputService.KeyboardEnabled) then
+	device = "Console";
+else
+	device = "PC";
+end
+local Window = OrionLib:MakeWindow({Name="Shel1a Hub | Premium",HidePremium=false,SaveConfig=false,IntroEnabled=false,ConfigFolder="OrionTest"});
+local infoTab = Window:MakeTab({Name="Info",Icon="rbxassetid://7733964719",PremiumOnly=false});
+local playerSection = infoTab:AddSection({Name="Player Info"});
+infoTab:AddLabel(LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")");
+infoTab:AddLabel("Account Age: " .. LocalPlayer.AccountAge .. " Days");
+infoTab:AddLabel("Executor: " .. ((identifyexecutor and identifyexecutor()) or "Unknown"));
+infoTab:AddLabel("Device: " .. device);
+infoTab:AddLabel("Country: " .. country);
+local otherSection = infoTab:AddSection({Name="Other Info"});
+infoTab:AddButton({Name="Rejoin",Callback=function()
+	local TeleportService = game:GetService("TeleportService");
+	TeleportService:Teleport(game.PlaceId, LocalPlayer);
+end});
+infoTab:AddButton({Name="Server Hop",Callback=function()
+	local HttpService = game:GetService("HttpService");
+	local TeleportService = game:GetService("TeleportService");
+	local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")).data;
+	for _, server in pairs(servers) do
+		if ((server.playing < server.maxPlayers) and (server.id ~= game.JobId)) then
+			TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer);
+			break;
+		end
+	end
+end});
+infoTab:AddButton({Name="Discord Server",Callback=function()
+	OrionLib:MakeNotification({Name="Sorry!",Content="We currently don't have a Discord server",Image="rbxassetid://4483345998",Time=5});
+end});
+infoTab:AddButton({Name="Copy JobID",Callback=function()
+	if (game.JobId and (game.JobId ~= "")) then
+		setclipboard(game.JobId);
+		OrionLib:MakeNotification({Name="Success",Content="Copied JobID to clipboard",Image="rbxassetid://4483345998",Time=3});
+	end
+end});
+infoTab:AddButton({Name="Credits",Callback=function()
+	OrionLib:MakeNotification({Name="Script by Shel1a",Content="@momiwove on Discord",Image="rbxassetid://4483345998",Time=5});
+end});
+infoTab:AddButton({Name="Console",Callback=function()
+	game:GetService("StarterGui"):SetCore("DevConsoleVisible", true);
+end});
+local ScriptsTab = Window:MakeTab({Name="Scripts",Icon="rbxassetid://7733945018",PremiumOnly=false});
+ScriptsTab:AddParagraph("Disclaimer.", "The scripts listed here are not made by me and I am not responsible for any harm caused by any of these scripts below.");
+ScriptsTab:AddButton({Name="Infinite Yield",Callback=function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))();
+end});
+ScriptsTab:AddButton({Name="Ink Game Script",Callback=function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/boregondev/SKYSCRIPTS/refs/heads/main/SKYSCRIPTS.lua", true))();
+end});
+ScriptsTab:AddButton({Name="Hat Hub",Callback=function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/inkdupe/hat-scripts/refs/heads/main/updatedhathub.lua"))();
+end});
+ScriptsTab:AddButton({Name="Universal Aimbot",Callback=function()
+	local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))();
+	Aimbot.Load();
+end});
+ScriptsTab:AddButton({Name="Grow A Garden Visual",Callback=function()
+	local Spawner = loadstring(game:HttpGet("https://codeberg.org/GrowAFilipino/GrowAGarden/raw/branch/main/Spawner.lua"))();
+	Spawner.Load();
+end});
+local movementTab = Window:MakeTab({Name="Movement",Icon="rbxassetid://7743871002",PremiumOnly=false});
+movementTab:AddSlider({Name="Walkspeed",Min=16,Max=100,Default=16,Color=Color3.fromRGB(255, 255, 255),Increment=1,ValueName="WalkSpeed",Callback=function(value)
+	if (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")) then
+		LocalPlayer.Character.Humanoid.WalkSpeed = value;
+	end
+end});
+movementTab:AddSlider({Name="JumpPower",Min=50,Max=200,Default=50,Color=Color3.fromRGB(255, 255, 255),Increment=1,ValueName="JumpPower",Callback=function(value)
+	if (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")) then
+		LocalPlayer.Character.Humanoid.JumpPower = value;
+	end
+end});
+local noclipEnabled = false;
+local noclipConnection;
+local originalCollidables = {};
+LocalPlayer.CharacterAdded:Connect(function()
+	originalCollidables = {};
+end);
+local function noclipLoop()
+	if not noclipEnabled then
+		return;
+	end
+	local character = LocalPlayer.Character;
+	if not character then
+		return;
+	end
+	for _, part in pairs(character:GetChildren()) do
+		if part:IsA("BasePart") then
+			if (originalCollidables[part] == nil) then
+				originalCollidables[part] = part.CanCollide;
+			end
+			if (originalCollidables[part] and part.CanCollide) then
+				part.CanCollide = false;
+			end
+		end
+	end
+end
+movementTab:AddToggle({Name="Noclip",Default=false,Callback=function(value)
+	noclipEnabled = value;
+	if noclipEnabled then
+		if not LocalPlayer.Character then
+			LocalPlayer.CharacterAdded:Wait();
+		end
+		noclipConnection = RunService.Stepped:Connect(noclipLoop);
+	else
+		if noclipConnection then
+			noclipConnection:Disconnect();
+			noclipConnection = nil;
+		end
+		local character = LocalPlayer.Character;
+		if character then
+			for part, wasCollidable in pairs(originalCollidables) do
+				if (part and (part.Parent == character) and wasCollidable) then
+					part.CanCollide = true;
+				end
+			end
+		end
+		originalCollidables = {};
+	end
+end});
+local infJumpDebounce = false;
+local infJumpConnection;
+movementTab:AddToggle({Name="Infinite Jump",Default=false,Callback=function(value)
+	if value then
+		infJumpConnection = UserInputService.JumpRequest:Connect(function()
+			if not infJumpDebounce then
+				infJumpDebounce = true;
+				local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid");
+				if humanoid then
+					humanoid:ChangeState(Enum.HumanoidStateType.Jumping);
+				end
+				task.wait(0.1);
+				infJumpDebounce = false;
+			end
+		end);
+	elseif infJumpConnection then
+		infJumpConnection:Disconnect();
+		infJumpConnection = nil;
+	end
+end});
+local spinEnabled = false;
+local spinSpeed = 25;
+local spinConnection;
+local function startSpin()
+	local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart");
+	if not hrp then
+		return;
+	end
+	spinConnection = RunService.RenderStepped:Connect(function()
+		if spinEnabled then
+			hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0);
+		end
+	end);
+end
+local function stopSpin()
+	if spinConnection then
+		spinConnection:Disconnect();
+		spinConnection = nil;
+	end
+end
+local antiAfkConnection;
+movementTab:AddToggle({Name="Anti AFK",Default=false,Callback=function(state)
+	if state then
+		antiAfkConnection = LocalPlayer.Idled:Connect(function()
+			VirtualUser:CaptureController();
+			VirtualUser:ClickButton2(Vector2.new());
+		end);
+	elseif antiAfkConnection then
+		antiAfkConnection:Disconnect();
+		antiAfkConnection = nil;
+	end
+end});
+movementTab:AddToggle({Name="Spin",Default=false,Callback=function(value)
+	spinEnabled = value;
+	if spinEnabled then
+		startSpin();
+	else
+		stopSpin();
+	end
+end});
+movementTab:AddSlider({Name="Spin Speed",Min=0,Max=50,Default=25,Color=Color3.fromRGB(255, 255, 255),Increment=1,ValueName="Degrees",Callback=function(value)
+	spinSpeed = value;
+end});
+local visualTab = Window:MakeTab({Name="Visual",Icon="rbxassetid://7733975185",PremiumOnly=false});
+local espEnabled = false;
+local espLabels = {};
+local function createNameLabel(player)
+	if espLabels[player] then
+		espLabels[player]:Destroy();
+		espLabels[player] = nil;
+	end
+	if (player.Character and (player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso"))) then
+		local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso");
+		local billboardGui = Instance.new("BillboardGui");
+		billboardGui.Name = "TorsoNameESP";
+		billboardGui.Adornee = torso;
+		billboardGui.Size = UDim2.new(0, 100, 0, 20);
+		billboardGui.StudsOffset = Vector3.new(0, 1.5, 0);
+		billboardGui.AlwaysOnTop = true;
+		billboardGui.Parent = player.Character;
+		local textLabel = Instance.new("TextLabel");
+		textLabel.BackgroundTransparency = 1;
+		textLabel.Size = UDim2.new(1, 0, 1, 0);
+		textLabel.Text = player.Name;
+		textLabel.TextColor3 = Color3.new(1, 1, 1);
+		textLabel.TextStrokeColor3 = Color3.new(0, 0, 0);
+		textLabel.TextStrokeTransparency = 0;
+		textLabel.Font = Enum.Font.SourceSansSemibold;
+		textLabel.TextScaled = true;
+		textLabel.Parent = billboardGui;
+		espLabels[player] = billboardGui;
+	end
+end
+local function removeNameLabel(player)
+	if espLabels[player] then
+		espLabels[player]:Destroy();
+		espLabels[player] = nil;
+	end
+end
+local function onCharacterAdded(player, character)
+	if espEnabled then
+		task.spawn(function()
+			repeat
+				task.wait();
+			until character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso") 
+			if espEnabled then
+				createNameLabel(player);
+			end
+		end);
+	end
+end
+local function onPlayerAdded(player)
+	player.CharacterAdded:Connect(function(character)
+		onCharacterAdded(player, character);
+	end);
+	if player.Character then
+		onCharacterAdded(player, player.Character);
+	end
+end
+local function toggleESP(enabled)
+	espEnabled = enabled;
+	if espEnabled then
+		for _, player in pairs(Players:GetPlayers()) do
+			if (player ~= LocalPlayer) then
+				onPlayerAdded(player);
+			end
+		end
+		Players.PlayerAdded:Connect(function(player)
+			if espEnabled then
+				onPlayerAdded(player);
+			end
+		end);
+		Players.PlayerRemoving:Connect(removeNameLabel);
+	else
+		for player, _ in pairs(espLabels) do
+			removeNameLabel(player);
+		end
+	end
+end
+visualTab:AddToggle({Name="ESP",Default=false,Callback=toggleESP});
+local xrayEnabled = false;
+local function xray()
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if (v:IsA("BasePart") and not v.Parent:FindFirstChildWhichIsA("Humanoid") and not v.Parent.Parent:FindFirstChildWhichIsA("Humanoid")) then
+			v.LocalTransparencyModifier = (xrayEnabled and 0.5) or 0;
+		end
+	end
+end
+local chamsEnabled = false;
+local chamsFillColor = Color3.fromRGB(255, 0, 0);
+local chamsOutlineColor = Color3.fromRGB(255, 255, 255);
+local chamsHighlights = {};
+local function createHighlight(player)
+	if chamsHighlights[player] then
+		chamsHighlights[player]:Destroy();
+		chamsHighlights[player] = nil;
+	end
+	if player.Character then
+		local highlight = Instance.new("Highlight");
+		highlight.Name = "ChamsHighlight";
+		highlight.Adornee = player.Character;
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop;
+		highlight.FillColor = chamsFillColor;
+		highlight.OutlineColor = chamsOutlineColor;
+		highlight.Parent = Workspace;
+		chamsHighlights[player] = highlight;
+	end
+end
+local function removeHighlight(player)
+	if chamsHighlights[player] then
+		chamsHighlights[player]:Destroy();
+		chamsHighlights[player] = nil;
+	end
+end
+local function updateColors()
+	for _, highlight in pairs(chamsHighlights) do
+		highlight.FillColor = chamsFillColor;
+		highlight.OutlineColor = chamsOutlineColor;
+	end
+end
+local function onCharacterAddedChams(player, character)
+	if chamsEnabled then
+		createHighlight(player);
+	end
+end
+local function onPlayerAddedChams(player)
+	player.CharacterAdded:Connect(function(character)
+		onCharacterAddedChams(player, character);
+	end);
+	if player.Character then
+		onCharacterAddedChams(player, player.Character);
+	end
+end
+local function toggleChams(enabled)
+	chamsEnabled = enabled;
+	if enabled then
+		for _, player in pairs(Players:GetPlayers()) do
+			if (player ~= LocalPlayer) then
+				onPlayerAddedChams(player);
+			end
+		end
+	else
+		for player in pairs(chamsHighlights) do
+			removeHighlight(player);
+		end
+		chamsHighlights = {};
+	end
+end
+Players.PlayerAdded:Connect(function(player)
+	if chamsEnabled then
+		onPlayerAddedChams(player);
+	end
+end);
+Players.PlayerRemoving:Connect(removeHighlight);
+visualTab:AddToggle({Name="Chams",Default=false,Callback=toggleChams});
+visualTab:AddToggle({Name="X-ray",Default=false,Callback=function(value)
+	xrayEnabled = value;
+	xray();
+end});
+local camera = Workspace.CurrentCamera;
+visualTab:AddSlider({Name="FOV",Min=0,Max=120,Default=70,Color=Color3.fromRGB(255, 255, 255),Increment=1,ValueName="FOV",Callback=function(value)
+	camera.FieldOfView = value;
+end});
+local function fpsBoost()
+	local Terrain = Workspace:FindFirstChildOfClass("Terrain");
+	if Terrain then
+		Terrain.WaterWaveSize = 0;
+		Terrain.WaterWaveSpeed = 0;
+		Terrain.WaterReflectance = 0;
+		Terrain.WaterTransparency = 1;
+	end
+	Lighting.GlobalShadows = false;
+	Lighting.FogEnd = 8999999488;
+	Lighting.FogStart = 8999999488;
+	settings().Rendering.QualityLevel = 1;
+	for _, v in pairs(game:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Material = Enum.Material.Plastic;
+			v.Reflectance = 0;
+			v.BackSurface = Enum.SurfaceType.SmoothNoOutlines;
+			v.BottomSurface = Enum.SurfaceType.SmoothNoOutlines;
+			v.FrontSurface = Enum.SurfaceType.SmoothNoOutlines;
+			v.LeftSurface = Enum.SurfaceType.SmoothNoOutlines;
+			v.RightSurface = Enum.SurfaceType.SmoothNoOutlines;
+			v.TopSurface = Enum.SurfaceType.SmoothNoOutlines;
+		elseif v:IsA("Decal") then
+			v.Transparency = 1;
+		elseif (v:IsA("ParticleEmitter") or v:IsA("Trail")) then
+			v.Lifetime = NumberRange.new(0);
+		end
+	end
+	for _, v in pairs(Lighting:GetDescendants()) do
+		if v:IsA("PostEffect") then
+			v.Enabled = false;
+		end
+	end
+	Workspace.DescendantAdded:Connect(function(child)
+		task.spawn(function()
+			if (child:IsA("ForceField") or child:IsA("Sparkles") or child:IsA("Smoke") or child:IsA("Fire") or child:IsA("Beam")) then
+				RunService.Heartbeat:Wait();
+				if (child and child.Parent) then
+					child:Destroy();
+				end
+			end
+		end);
+	end);
+end
+visualTab:AddButton({Name="FPS Boost",Callback=fpsBoost});
+OrionLib:Init();
