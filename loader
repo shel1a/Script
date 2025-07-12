@@ -67,7 +67,7 @@ ScriptsTab:AddButton({Name="Ink Game Script",Callback=function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/boregondev/SKYSCRIPTS/refs/heads/main/SKYSCRIPTS.lua", true))();
 end});
 ScriptsTab:AddButton({Name="Hat Hub",Callback=function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/inkdupe/hat-scripts/refs/heads/main/updatedhathub.lua"))();
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/NysaDanielle/games/refs/heads/main/inkgame.lua"))()
 end});
 ScriptsTab:AddButton({Name="Universal Aimbot",Callback=function()
 	local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))();
